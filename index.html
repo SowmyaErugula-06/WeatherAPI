@@ -1,0 +1,173 @@
+<!DOCTYPE html> 
+<html>
+<head>
+    <title>Weather API </title>
+    <style>
+        body {
+            height: 100vh;
+            margin: 0;
+            background-image: url('https://static.vecteezy.com/system/resources/previews/000/538/537/non_2x/sunny-and-cloudy-with-blue-sky-background-vector-illustration.jpg');
+            background-size: cover;
+            background-position: center;
+            font-family: Arial, sans-serif;
+            color: white;
+            transition: background-image 0.5s ease-in-out; 
+        }
+        .overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ff0000;
+        }
+        .weather-info, .forecast {
+            display: none;
+            text-align: center;
+            width: 80%;
+            padding: 20px;
+            border-radius: 15px;
+            background-color: rgba(255, 255, 255, 0.3);
+            margin-bottom: 20px;
+            font-size: 26px;
+        }
+        .forecast {
+            display: flex;
+            justify-content: space-around;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+        }
+        .day {
+            text-align: center;
+            font-size: 22px;
+            color: #ffffff;
+        }
+        .day img {
+            width: 80px;
+            height: 80px;
+        }
+        .day p {
+            margin: 10px 0;
+        }
+        input[type="text"] {
+            padding: 15px;
+            width: 60%;
+            border: 2px solid black;
+            border-radius: 25px;
+            background-color: plum;
+            color: black;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 14px;
+            width: 40%;
+            background-color: #4c87af;
+            color: white;
+            border: 3px solid black;
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #6845a0;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <h1>Weather Forecast</h1>
+        <input type="text" id="searchinp" placeholder="Enter City / Country Name">
+        <button onclick="weathercheck()">Search</button>
+        <div class="forecast" id="forecast">
+        </div>
+    </div>
+    <script>
+        const apiKey = "5a87669d5ec4583c5aec185a1a8d7b35";
+        function weathercheck() {
+            const place = document.getElementById('searchinp').value;
+            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${place}&appid=${apiKey}&units=metric`;
+            fetch(forecastUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('City not found');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const forecastDiv = document.getElementById('forecast');
+                    forecastDiv.innerHTML = ''; 
+                    const now = new Date();
+                    const today = now.toISOString().split('T')[0];
+                    const todayForecast = data.list.filter(forecast => {
+                        const forecastDate = new Date(forecast.dt * 1000);
+                        const forecastDay = forecastDate.toISOString().split('T')[0];
+                        return forecastDay === today && forecastDate.getHours() >= now.getHours();
+                    });
+                    if (todayForecast.length > 0) {
+                        const currentTemp = todayForecast[0].main.temp; 
+                        setBackground(currentTemp); 
+                        todayForecast.forEach(entry => {
+                            const forecastTime = new Date(entry.dt * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                            const temp = entry.main.temp.toFixed(1);
+                            const icon = entry.weather[0].icon;
+                            const description = entry.weather[0].description;
+                            const forecastHTML = `
+                                <div class="day">
+                                    <p>Today at ${forecastTime}</p>
+                                    <img src="http://openweathermap.org/img/wn/${icon}@2x.png" alt="icon">
+                                    <p><strong>${temp}°C</strong></p>
+                                    <p>${description.charAt(0).toUpperCase() + description.slice(1)}</p>
+                                </div>
+                            `;
+                            forecastDiv.innerHTML += forecastHTML;
+                        });
+                    }
+                    const forecastDays = data.list.filter(forecast => forecast.dt_txt.includes("12:00:00")).slice(1, 5);
+                    forecastDays.forEach(day => {
+                        const forecastDate = new Date(day.dt * 1000);
+                        const dayName = forecastDate.toLocaleDateString('en-US', { weekday: 'long' });
+                        const temp = day.main.temp.toFixed(1);
+                        const icon = day.weather[0].icon;
+                        const description = day.weather[0].description;
+                        const forecastHTML = `
+                            <div class="day">
+                                <p>${dayName}</p>
+                                <img src="http://openweathermap.org/img/wn/${icon}@2x.png" alt="icon">
+                                <p><strong>${temp}°C</strong></p>
+                                <p>${description.charAt(0).toUpperCase() + description.slice(1)}</p>
+                            </div>
+                        `;
+                        forecastDiv.innerHTML += forecastHTML;
+                    });
+                    forecastDiv.style.display = 'flex';
+                })
+                .catch(err => {
+                    console.error('Error fetching weather data:', err);
+                    alert('Error fetching data');
+                });
+        }
+        function setBackground(temp) {
+            const body = document.body;
+            if (temp >= 30) {
+                body.style.backgroundImage = "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSE5RseEJcme39UMcDS_GOdj-SlS-ZjFURggQ&s')";
+            } else if (temp >= 15 && temp < 30) {
+                body.style.backgroundImage = "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTp-WDgraYvKZXTxAz0r-S85A5YVcGZ4z0p4w&s')";
+            } else {
+                body.style.backgroundImage = "url('https://t4.ftcdn.net/jpg/00/74/83/05/360_F_74830586_jl5Tnx9gKamEQ3aqnuYJfoOGffyevvVV.jpg')";
+            }
+            body.style.backgroundSize = "cover";
+            body.style.backgroundPosition = "center";
+        }
+    </script>
+</body>
+</html>
